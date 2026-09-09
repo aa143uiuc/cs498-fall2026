@@ -85,7 +85,59 @@ def estimate_homography(xy: np.ndarray, uv: np.ndarray) -> np.ndarray:
       3. use SVD to take its right-null-space vector;
       4. reshape, denormalize, and choose a stable matrix scale.
     """
-    return np.eye(3)  # Runnable placeholder: replace with your estimate.
+
+
+    def process(coo):
+            x,y=np.split(coo, 2,axis=1)
+            x_c=x-x.mean()
+            y_c=y-y.mean()
+            d_mean=np.sqrt(x_c**2+y_c**2).mean()
+            return x.mean(),y.mean(),x_c,y_c,d_mean
+
+    x_avg,y_avg,x_c,y_c,mean_dist_xy=process(xy)
+    u_avg,v_avg,u_c,v_c,mean_dist_uv=process(uv)
+
+
+    scale_xy =np.sqrt(2)/mean_dist_xy
+    scale_uv =np.sqrt(2)/mean_dist_uv
+
+    x_n=scale_xy*x_c
+    y_n=scale_xy*y_c
+    u_n = scale_uv * u_c
+    v_n = scale_uv * v_c
+
+
+    def norm_matrix(s,x,y):
+        return np.array([
+            [s,0,-s*x],
+            [0,s,-s*y],
+                [0,0,1]
+            ])
+
+
+
+    xy_n=np.concatenate([x_n,y_n],1)
+    uv_n=np.concatenate([u_n,v_n],1)
+
+    assert np.isclose(np.linalg.norm(xy_n,axis=1).mean(),np.linalg.norm(uv_n,axis=1).mean())
+
+
+    pairs=np.concatenate([xy_n,uv_n],1)
+    N=pairs.shape[0]
+    A=np.zeros(shape=(2*N,9))
+    for i in range(pairs.shape[0]):
+        x1,y1,u1,v1=pairs[i,0],pairs[i,1],pairs[i,2],pairs[i,3]
+        A[2*i,:]=np.array([-x1,-y1,-1,0,0,0,u1*x1,u1*y1,u1])
+        A[2*i+1,:]=np.array([0,0,0,-x1,-y1,-1,v1*x1,v1*y1,v1])
+
+    u, _, vh = np.linalg.svd(A, full_matrices=True)
+    H_normalized = vh[-1].reshape(3,3)
+
+    xy_norm_matrix=norm_matrix(scale_xy,x_avg,y_avg)
+    uv_norm_matrix=norm_matrix(scale_uv,u_avg,v_avg)
+
+    H=np.linalg.inv(uv_norm_matrix)@H_normalized@xy_norm_matrix
+    return H
 
 
 def logo_to_image_homography(
