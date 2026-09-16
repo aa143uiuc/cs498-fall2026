@@ -51,7 +51,7 @@ def estimate_projection_matrix(xyz: np.ndarray, uv: np.ndarray) -> np.ndarray:
 
     P= vh[-1].reshape(3,4)
     
-    return P
+    return P/np.linalg.norm(P)
 
 
 # ------------------- DO NOT MODIFY CODE OUTSIDE THE BLOCK --------------------

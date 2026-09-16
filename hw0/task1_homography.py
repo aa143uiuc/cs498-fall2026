@@ -138,7 +138,7 @@ def estimate_homography(xy: np.ndarray, uv: np.ndarray) -> np.ndarray:
     uv_norm_matrix=norm_matrix(scale_uv,u_avg,v_avg)
 
     H=np.linalg.inv(uv_norm_matrix)@H_normalized@xy_norm_matrix
-    return H
+    return H/np.linalg.norm(H)
 
 
 def logo_to_image_homography(
