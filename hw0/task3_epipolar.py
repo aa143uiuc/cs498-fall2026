@@ -25,8 +25,51 @@ def estimate_fundamental_matrix(matches: np.ndarray) -> np.ndarray:
       4. enforce rank two by zeroing the smallest singular value; and
       5. denormalize and choose a stable scale.
     """
-    del matches
-    return np.array([[0.0, 0.0, 0.0], [0.0, 0.0, -1.0], [0.0, 1.0, 0.0]])
+
+    u_v_1=matches[...,:2]
+    u_v_2=matches[...,2:]
+
+    def process(coo):
+          x,y=np.split(coo, 2,axis=1)
+          x_c=x-x.mean()
+          y_c=y-y.mean()
+          d_mean=np.sqrt(x_c**2+y_c**2).mean()
+          return x.mean(),y.mean(),x_c,y_c,d_mean
+
+    u1_mean,v1_mean,u1_c,v1_c,d1_mean=process(u_v_1)
+    u2_mean,v2_mean,u2_c,v2_c,d2_mean=process(u_v_2)
+
+    scale_uv1 =np.sqrt(2)/d1_mean
+    scale_uv2 =np.sqrt(2)/d2_mean
+
+    u1=scale_uv1*u1_c
+    v1=scale_uv1*v1_c
+    u2=scale_uv2*u2_c
+    v2=scale_uv2*v2_c
+
+
+    def norm_matrix(s,x,y):
+      return np.array([
+          [s,0,-s*x],
+          [0,s,-s*y],
+              [0,0,1]
+          ])
+
+    A=np.concatenate([u2*u1,u2*v1,u2,v2*u1,v2*v1,v2,u1,v1,np.ones_like(u1)],1)
+    _, _, Vh = np.linalg.svd(A)
+    F=Vh[-1].reshape(3,3)
+    U, S, Vh_2 = np.linalg.svd(F)
+    S[-1]=0
+
+    F_2=U@np.diag(S)@Vh_2
+
+    T1 = norm_matrix(scale_uv1, u1_mean, v1_mean)
+    T2 = norm_matrix(scale_uv2, u2_mean, v2_mean)
+
+    F_final = T2.T @ F_2 @ T1
+    F_final/= np.linalg.norm(F_final)
+
+    return F_final
 
 
 # ------------------- DO NOT MODIFY CODE OUTSIDE THE BLOCK --------------------

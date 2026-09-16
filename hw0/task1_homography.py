@@ -62,14 +62,15 @@ TENNIS_UV = np.array(
 # origin and axes defined in the handout, and keep the A--H order unchanged.
 TENNIS_XY = np.array(
     [
-        [0.0, 0.0],  # A: replace
-        [0.0, 0.0],  # B: replace
-        [0.0, 0.0],  # C: replace
-        [0.0, 0.0],  # D: replace
-        [0.0, 0.0],  # E: replace
-        [0.0, 0.0],  # F: replace
-        [0.0, 0.0],  # G: replace
-        [0.0, 0.0],  # H: replace
+      
+    [-5.485, 0.000],   # A
+    [5.485, 0.000],    # B
+    [-5.485, 23.770],  # C
+    [5.485, 23.770],   # D
+    [-4.115, 0.000],   # E
+    [4.115, 0.000],    # F
+    [-4.115, 23.770],  # G
+    [4.115, 23.770]    # H
     ],
     dtype=float,
 )
@@ -152,8 +153,17 @@ def logo_to_image_homography(
     court_to_image. Include the vertical flip because logo pixel y points down
     while court y points up.
     """
-    del logo_shape, lower_left_xy, size_xy
-    return np.asarray(court_to_image, dtype=float)  # Runnable placeholder.
+    logo_h=logo_shape[0]
+    logo_w=logo_shape[1]
+    scale_x=size_xy[0]/logo_w
+    scale_y=-size_xy[1]/logo_h
+
+    t_x=lower_left_xy[0]
+    t_y=lower_left_xy[1]
+
+    HLtocourt=np.array([[scale_x,0,t_x],[0,scale_y,t_y+size_xy[1]],[0,0,1]])
+    H_logo_to_image = court_to_image @ HLtocourt
+    return np.asarray(H_logo_to_image, dtype=float)  # Runnable placeholder.
 
 
 def alpha_blend(foreground_rgba: np.ndarray, background_rgb: np.ndarray) -> np.ndarray:
@@ -163,8 +173,12 @@ def alpha_blend(foreground_rgba: np.ndarray, background_rgb: np.ndarray) -> np.n
     handout. Alpha is the final channel of foreground_rgba and must blend all
     three foreground RGB channels with the matching background pixel.
     """
-    del foreground_rgba
-    return np.asarray(background_rgb, dtype=float).copy()  # Runnable placeholder.
+
+    rgb_loh=foreground_rgba[...,:-1]
+    alpha=foreground_rgba[...,-1][...,None]
+    l_out=alpha*rgb_loh+(1-alpha)*background_rgb
+    
+    return np.asarray(l_out, dtype=float).copy()  # Runnable placeholder.
 
 
 # ------------------- DO NOT MODIFY CODE OUTSIDE THE BLOCK --------------------

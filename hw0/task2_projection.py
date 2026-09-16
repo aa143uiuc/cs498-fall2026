@@ -36,11 +36,22 @@ def estimate_projection_matrix(xyz: np.ndarray, uv: np.ndarray) -> np.ndarray:
     design matrix using its matching UV pixel, solve the right null space with
     SVD, reshape to 3 x 4, and choose a stable scale.
     """
-    del xyz, uv
-    intrinsic = np.array([[1000.0, 0.0, 960.0], [0.0, 1000.0, 540.0], [0.0, 0.0, 1.0]])
-    rotation = np.diag([1.0, -1.0, -1.0])
-    camera_center = np.array([14.0, -15.0, 10.0])
-    return intrinsic @ np.column_stack((rotation, -rotation @ camera_center))
+
+    N=xyz.shape[0]
+    A=np.zeros(shape=(2*N,12))
+
+    x,y,z=xyz[...,0],xyz[...,1],xyz[...,2]
+    u,v=uv[...,0],uv[...,1]
+
+    ones=np.ones(shape=x.shape[0])
+    zeros=np.zeros(shape=x.shape[0])
+    A[::2]=np.array([-x,-y,-z,-ones,zeros,zeros,zeros,zeros,u*x,u*y,u*z,u]).T
+    A[1::2]=np.array([zeros,zeros,zeros,zeros,-x,-y,-z,-ones,v*x,v*y,v*z,v]).T
+    u, _, vh = np.linalg.svd(A, full_matrices=True)
+
+    P= vh[-1].reshape(3,4)
+    
+    return P
 
 
 # ------------------- DO NOT MODIFY CODE OUTSIDE THE BLOCK --------------------
